@@ -32,8 +32,9 @@ Options:
 Steps:
   1. Clone $BASE_REPO_URL into DIR when it does not exist
   2. Copy backend/, frontend/, docker-compose.yml and .env.example from
-     this repo into DIR (overwriting the Docker/OpenAI-ready files)
-  3. Create DIR/.env from .env.example if missing
+     this repo into DIR (overwriting the Docker/OpenAI-ready files);
+     when this repo contains a .env file it is copied to DIR as well
+  3. Create DIR/.env from .env.example if still missing
   4. Run 'docker compose up -d --build' in DIR
 EOF
 }
@@ -83,6 +84,10 @@ cp "$SCRIPT_DIR/docker-compose.yml" "$TARGET/"
 if [[ -f "$SCRIPT_DIR/.env.example" ]]; then
   cp "$SCRIPT_DIR/.env.example" "$TARGET/"
 fi
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+  cp "$SCRIPT_DIR/.env" "$TARGET/.env"
+  echo "Copied .env from this repo to $TARGET"
+fi
 
 # --- 4. Validate the merged tree ---
 if [[ ! -f "$TARGET/backend/app/main.py" || ! -d "$TARGET/backend/static" ]]; then
@@ -97,7 +102,7 @@ EOF
   exit 1
 fi
 
-# --- 5. Create .env if missing ---
+# --- 5. Create .env from .env.example if still missing ---
 if [[ ! -f "$TARGET/.env" ]] && [[ -f "$TARGET/.env.example" ]]; then
   cp "$TARGET/.env.example" "$TARGET/.env"
   echo "Created $TARGET/.env from .env.example."
@@ -107,6 +112,7 @@ fi
 # --- 6. Start the stack ---
 if $NO_START; then
   echo "Skipping stack start (--no-start)."
+  echo "The Lakemeter working directory is now: $TARGET"
   echo "Run: cd $TARGET && docker compose up -d --build"
   exit 0
 fi
@@ -128,6 +134,9 @@ for _ in $(seq 1 90); do
     echo "  Frontend:  http://localhost:5173"
     echo "  API:       http://localhost:8000"
     echo "  API docs:  http://localhost:8000/api/docs"
+    echo
+    echo "The Lakemeter working directory is now: $TARGET"
+    echo "Manage the stack from there, e.g.: cd $TARGET && docker compose ps"
     exit 0
   fi
   sleep 2
