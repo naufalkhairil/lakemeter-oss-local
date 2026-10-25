@@ -110,3 +110,11 @@ the original Databricks FMAPI mode (`DATABRICKS_HOST` + `CLAUDE_MODEL_ENDPOINT`)
   (set in `docker-compose.yml`).
 - Data persists in Docker volumes. Reset everything with
   `docker compose down -v`.
+
+## Troubleshooting
+
+- **`COPY static ./static: "/static": not found` during build** — you are
+  building from the changes repo itself. This repo is not self-contained:
+  it only holds the Docker additions. Merge it into the base clone first
+  (run `./install.sh`, or the manual copy steps under Setup), then run
+  `docker compose up` from the merged directory.

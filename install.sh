@@ -84,14 +84,27 @@ if [[ -f "$SCRIPT_DIR/.env.example" ]]; then
   cp "$SCRIPT_DIR/.env.example" "$TARGET/"
 fi
 
-# --- 4. Create .env if missing ---
+# --- 4. Validate the merged tree ---
+if [[ ! -f "$TARGET/backend/app/main.py" || ! -d "$TARGET/backend/static" ]]; then
+  cat >&2 <<EOF
+ERROR: $TARGET does not look like the Lakemeter base repository.
+This repo only contains the Docker additions and cannot be built on its own
+(builds fail with: COPY static ./static: "/static": not found).
+Clone the base code first:
+  git clone $BASE_REPO_URL $TARGET
+or point --target at an existing clone, then re-run this installer.
+EOF
+  exit 1
+fi
+
+# --- 5. Create .env if missing ---
 if [[ ! -f "$TARGET/.env" ]] && [[ -f "$TARGET/.env.example" ]]; then
   cp "$TARGET/.env.example" "$TARGET/.env"
   echo "Created $TARGET/.env from .env.example."
   echo "Edit it to configure the AI chat backend (OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL)."
 fi
 
-# --- 5. Start the stack ---
+# --- 6. Start the stack ---
 if $NO_START; then
   echo "Skipping stack start (--no-start)."
   echo "Run: cd $TARGET && docker compose up -d --build"
@@ -106,7 +119,7 @@ else
   docker compose up -d --build
 fi
 
-# --- 6. Wait for the backend ---
+# --- 7. Wait for the backend ---
 echo "Waiting for the backend to become healthy..."
 for _ in $(seq 1 90); do
   if curl -fsS http://localhost:8000/health >/dev/null 2>&1; then
