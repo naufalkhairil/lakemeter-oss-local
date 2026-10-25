@@ -261,6 +261,9 @@ class ClaudeAIClient:
             # Databricks FMAPI takes the model from the URL path;
             # OpenAI-compatible APIs require it in the request body.
             payload["model"] = self._model
+            # Some OpenAI-compatible gateways stream SSE unless explicitly
+            # told not to.
+            payload["stream"] = False
         
         if tools:
             payload["tools"] = self._convert_tools_to_openai_format(tools)

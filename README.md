@@ -34,6 +34,13 @@ The application source code lives in the upstream repository:
    docker compose up -d --build
    ```
 
+Alternatively, run the bundled installer, which performs steps 1–3 for you:
+
+```bash
+./install.sh            # clones ../lakemeter-oss, copies files, starts the stack
+./install.sh --help     # options: --target, --skip-clone, --no-build, --no-start
+```
+
 The first start takes a few minutes (pip/npm installs) and bootstraps the
 database schema plus pricing data automatically.
 
@@ -48,6 +55,7 @@ database schema plus pricing data automatically.
 
 ## What's included
 
+- `install.sh` — one-command installer (clone base repo → overlay files → create `.env` → `docker compose up`)
 - `docker-compose.yml` — `certgen` (self-signed cert), `db` (postgres:16 with SSL), `backend`, `frontend`
 - `backend/Dockerfile` + `backend/.dockerignore` — FastAPI backend (Python 3.12)
 - `backend/app/services/ai_client.py` + `backend/app/routes/chat.py` — refactored chat backend supporting OpenAI-compatible APIs (see AI chat below)
@@ -64,11 +72,24 @@ next to `docker-compose.yml` or in your shell):
 
 | Variable | Example | Description |
 |---|---|---|
-| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | API base URL (include `/v1`); e.g. `http://localhost:11434/v1` for Ollama |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | API base URL (include `/v1`) |
 | `OPENAI_API_KEY` | `sk-...` | API key; can be any value for keyless local servers |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Model name (default: `gpt-4o-mini`) |
 
+Providers running on your host machine (Ollama, LM Studio, model gateways)
+are reached from the backend container via `host.docker.internal`
+(mapped through `extra_hosts` in `docker-compose.yml`):
+
 ```bash
+# Ollama on the host
+OPENAI_BASE_URL=http://host.docker.internal:11434/v1 \
+OPENAI_API_KEY= \
+OPENAI_MODEL=llama3.2 \
+docker compose up -d --build backend
+```
+
+```bash
+# OpenAI
 OPENAI_BASE_URL=https://api.openai.com/v1 \
 OPENAI_API_KEY=sk-... \
 OPENAI_MODEL=gpt-4o-mini \

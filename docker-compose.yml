@@ -42,6 +42,10 @@ services:
 
   backend:
     build: ./backend
+    # Allows the container to reach host services (e.g. a local
+    # OpenAI-compatible proxy like Ollama or a model gateway).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       ENVIRONMENT: local
       DATABASE_URL: postgresql+psycopg://lakemeter:lakemeter@db:5432/lakemeter?sslmode=require
