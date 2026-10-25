@@ -48,6 +48,16 @@ services:
       LAKEMETER_BOOTSTRAP_DATABASE: "true"
       LAKEMETER_DATABASE_AUTH_MODE: oauth_with_secrets_fallback
       LOCAL_DEV_EMAIL: dev@lakemeter.local
+      # OpenAI-compatible chat backend (optional; enables the AI assistant
+      # without a Databricks workspace). Leave OPENAI_BASE_URL/OPENAI_API_KEY
+      # empty to keep the Databricks FMAPI mode. Set them via a .env file or
+      # your shell, e.g.:
+      #   OPENAI_BASE_URL=https://api.openai.com/v1
+      #   OPENAI_API_KEY=sk-...
+      #   OPENAI_MODEL=gpt-4o-mini
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
     ports:
       - "8000:8000"
     depends_on:
