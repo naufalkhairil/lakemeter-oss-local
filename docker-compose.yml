@@ -1,0 +1,72 @@
+services:
+  certgen:
+    image: alpine/openssl
+    entrypoint: ["/bin/sh", "-c"]
+    volumes:
+      - db-certs:/certs
+    command: >
+      "openssl req -x509 -newkey rsa:2048 -nodes -days 3650
+      -keyout /certs/server.key -out /certs/server.crt
+      -subj '/CN=db' -addext 'subjectAltName=DNS:db,DNS:localhost'
+      && chown 70:70 /certs/server.key /certs/server.crt
+      && chmod 600 /certs/server.key
+      && chmod 644 /certs/server.crt"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: lakemeter
+      POSTGRES_PASSWORD: lakemeter
+      POSTGRES_DB: lakemeter
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/certs/server.crt
+      - -c
+      - ssl_key_file=/certs/server.key
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - db-certs:/certs:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lakemeter -d lakemeter"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      certgen:
+        condition: service_completed_successfully
+
+  backend:
+    build: ./backend
+    environment:
+      ENVIRONMENT: local
+      DATABASE_URL: postgresql+psycopg://lakemeter:lakemeter@db:5432/lakemeter?sslmode=require
+      LAKEMETER_BOOTSTRAP_DATABASE: "true"
+      LAKEMETER_DATABASE_AUTH_MODE: oauth_with_secrets_fallback
+      LOCAL_DEV_EMAIL: dev@lakemeter.local
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_PROXY_TARGET: http://backend:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  db-certs:
+  frontend-node-modules:
