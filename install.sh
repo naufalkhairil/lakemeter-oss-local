@@ -23,7 +23,7 @@ Installs and starts Lakemeter locally with Docker.
 
 Options:
   --target DIR     Directory for the Lakemeter source repo
-                   (default: $SCRIPT_DIR/../lakemeter-oss)
+                   (default: $SCRIPT_DIR/lakemeter-oss)
   --skip-clone     Do not clone the base repository if DIR is missing
   --no-build       Skip image builds (use existing images)
   --no-start       Only prepare files; do not start the stack
@@ -31,11 +31,10 @@ Options:
 
 Steps:
   1. Clone $BASE_REPO_URL into DIR when it does not exist
-  2. Copy backend/, frontend/, docker-compose.yml and .env.example from
-     this repo into DIR (overwriting the Docker/OpenAI-ready files);
-     when this repo contains a .env file it is copied to DIR as well
-  3. Create DIR/.env from .env.example if still missing
-  4. Run 'docker compose up -d --build' in DIR
+  2. Copy backend/ and frontend/ from this repo into DIR
+     (merging with upstream, overwriting Docker/OpenAI-ready files)
+  3. Create .env from .env.example if still missing
+  4. Run 'docker compose up -d --build' from this repo's root
 EOF
 }
 
@@ -50,7 +49,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-TARGET="${TARGET:-$SCRIPT_DIR/../lakemeter-oss}"
+TARGET="${TARGET:-$SCRIPT_DIR/lakemeter-oss}"
 TARGET="$(realpath -m "$TARGET")"
 
 if [[ "$TARGET" == "$SCRIPT_DIR" ]]; then
@@ -76,18 +75,10 @@ fi
 command -v docker >/dev/null 2>&1 || { echo "ERROR: docker is not installed" >&2; exit 1; }
 docker compose version >/dev/null 2>&1 || { echo "ERROR: docker compose is not available" >&2; exit 1; }
 
-# --- 3. Overlay the Docker additions ---
+# --- 3. Overlay the Docker additions into the upstream source ---
 echo "Copying Docker additions into $TARGET ..."
 cp -a "$SCRIPT_DIR/backend" "$TARGET/"
 cp -a "$SCRIPT_DIR/frontend" "$TARGET/"
-cp "$SCRIPT_DIR/docker-compose.yml" "$TARGET/"
-if [[ -f "$SCRIPT_DIR/.env.example" ]]; then
-  cp "$SCRIPT_DIR/.env.example" "$TARGET/"
-fi
-if [[ -f "$SCRIPT_DIR/.env" ]]; then
-  cp "$SCRIPT_DIR/.env" "$TARGET/.env"
-  echo "Copied .env from this repo to $TARGET"
-fi
 
 # --- 4. Validate the merged tree ---
 if [[ ! -f "$TARGET/backend/app/main.py" || ! -d "$TARGET/backend/static" ]]; then
@@ -103,22 +94,21 @@ EOF
 fi
 
 # --- 5. Create .env from .env.example if still missing ---
-if [[ ! -f "$TARGET/.env" ]] && [[ -f "$TARGET/.env.example" ]]; then
-  cp "$TARGET/.env.example" "$TARGET/.env"
-  echo "Created $TARGET/.env from .env.example."
+if [[ ! -f "$SCRIPT_DIR/.env" ]] && [[ -f "$SCRIPT_DIR/.env.example" ]]; then
+  cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
+  echo "Created .env from .env.example."
   echo "Edit it to configure the AI chat backend (OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL)."
 fi
 
 # --- 6. Start the stack ---
 if $NO_START; then
   echo "Skipping stack start (--no-start)."
-  echo "The Lakemeter working directory is now: $TARGET"
-  echo "Run: cd $TARGET && docker compose up -d --build"
+  echo "Run: cd $SCRIPT_DIR && docker compose up -d --build"
   exit 0
 fi
 
 echo "Starting the stack (first start builds images and bootstraps the database)..."
-cd "$TARGET"
+cd "$SCRIPT_DIR"
 if $NO_BUILD; then
   docker compose up -d
 else
@@ -135,13 +125,14 @@ for _ in $(seq 1 90); do
     echo "  API:       http://localhost:8000"
     echo "  API docs:  http://localhost:8000/api/docs"
     echo
-    echo "The Lakemeter working directory is now: $TARGET"
-    echo "Manage the stack from there, e.g.: cd $TARGET && docker compose ps"
+    echo "Working directory: $SCRIPT_DIR"
+    echo "Upstream source:   $TARGET"
+    echo "Manage the stack:  cd $SCRIPT_DIR && docker compose ps"
     exit 0
   fi
   sleep 2
 done
 
 echo "WARNING: backend did not become healthy within 3 minutes." >&2
-echo "Check logs with: cd $TARGET && docker compose logs backend" >&2
+echo "Check logs with: cd $SCRIPT_DIR && docker compose logs backend" >&2
 exit 1

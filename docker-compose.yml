@@ -41,7 +41,7 @@ services:
         condition: service_completed_successfully
 
   backend:
-    build: ./backend
+    build: ./lakemeter-oss/backend
     # Allows the container to reach host services (e.g. a local
     # OpenAI-compatible proxy like Ollama or a model gateway).
     extra_hosts:
@@ -69,13 +69,13 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build: ./lakemeter-oss/frontend
     environment:
       VITE_PROXY_TARGET: http://backend:8000
     ports:
       - "5173:5173"
     volumes:
-      - ./frontend:/app
+      - ./lakemeter-oss/frontend:/app
       - frontend-node-modules:/app/node_modules
     depends_on:
       - backend

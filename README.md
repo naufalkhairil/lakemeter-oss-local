@@ -10,34 +10,32 @@ The application source code lives in the upstream repository:
 
 ## Setup
 
-1. Clone the base repository:
+1. Clone the base repository into a subdirectory:
 
    ```bash
    git clone https://github.com/databrickslabs/lakemeter-oss.git
    ```
 
-2. Copy everything from this repo into the cloned repo
+2. Copy the Docker-specific backend and frontend files into the cloned repo
    (merges into the existing `backend/` and `frontend/` directories,
    overwriting `frontend/vite.config.ts`, `backend/app/services/ai_client.py`
    and `backend/app/routes/chat.py` with the Docker/OpenAI-ready versions):
 
    ```bash
-   cp -a lakemeter-oss-local/backend lakemeter-oss/
-   cp -a lakemeter-oss-local/frontend lakemeter-oss/
-   cp lakemeter-oss-local/docker-compose.yml lakemeter-oss/
+   cp -a backend lakemeter-oss/
+   cp -a frontend lakemeter-oss/
    ```
 
-3. Start the stack:
+3. Start the stack from this directory:
 
    ```bash
-   cd lakemeter-oss
    docker compose up -d --build
    ```
 
 Alternatively, run the bundled installer, which performs steps 1–3 for you:
 
 ```bash
-./install.sh            # clones ../lakemeter-oss, copies files, starts the stack
+./install.sh            # clones ./lakemeter-oss, copies files, starts the stack
 ./install.sh --help     # options: --target, --skip-clone, --no-build, --no-start
 ```
 

@@ -25,3 +25,6 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+
+# Cloned upstream repo (created by install.sh)
+lakemeter-oss/
